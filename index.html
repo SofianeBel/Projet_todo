@@ -1,0 +1,271 @@
+<!--
+    Fichier: /C:/Users/sifly/Documents/H3/HTML/projet_todo/index.html
+    Description: Page HTML pour une application de gestion de tâches (ToDo).
+    Langue: Français
+
+    Sections:
+    - En-tête: Contient le titre de l'application.
+    - Contenu principal: Formulaire pour ajouter des tâches et tableau pour afficher les tâches.
+    - Pied de page: Informations sur le copyright.
+
+    Styles:
+    - Styles de base pour le reset des marges et paddings.
+    - Styles pour le corps de la page, l'en-tête, le formulaire, le tableau des tâches et le pied de page.
+    - Animation pour changer la couleur de fond des cellules du tableau au survol.
+
+    Script:
+    - saveTasks: Sauvegarde les tâches dans le localStorage.
+    - loadTasks: Charge les tâches depuis le localStorage.
+    - addTaskToTable: Ajoute une tâche au tableau avec la possibilité de marquer comme fait et de supprimer.
+    - Gestionnaire d'événements pour le formulaire pour ajouter une nouvelle tâche.
+    - Chargement des tâches au chargement de la page.
+-->
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Projet ToDo</title>
+    <style>
+      /* Styles de base */
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f2f5;
+        color: #333;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      /* En-tête */
+      header {
+        background-color: #4a90e2;
+        color: white;
+        text-align: center;
+        padding: 1.5rem;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      header h1 {
+        font-size: 1.8rem;
+      }
+
+      /* Contenu principal */
+      main {
+        flex: 1;
+        padding: 2rem;
+        max-width: 800px;
+        margin: auto;
+      }
+
+      form {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      input[type="text"] {
+        padding: 0.75rem;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 0.5rem;
+        flex: 1;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+      }
+
+      button {
+        padding: 0.75rem 1.25rem;
+        font-size: 1rem;
+        background-color: #4a90e2;
+        color: white;
+        border: none;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+
+      button:hover {
+        background-color: #357ab7;
+      }
+
+      /* Tableau des tâches */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      th,
+      td {
+        padding: 1rem;
+        text-align: center;
+        border-bottom: 1px solid #ddd;
+      }
+
+      th {
+        background-color: #4a90e2;
+        color: white;
+        font-weight: 600;
+      }
+
+      tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+
+      td {
+        font-size: 0.95rem;
+        color: #555;
+      }
+
+      /* .task {
+        font-size: 0.95rem;
+        color: #555;
+      }
+
+      .task.todo:hover {
+        background-color: red;
+      }
+
+      .task.done:hover {
+        background-color: green;
+      } */
+
+      @keyframes hoverBGColor {
+        0% {
+          background-color: #f9f9f9;
+        }
+        100% {
+          background-color: #4a90e2;
+        }
+      }
+
+      td:hover {
+        animation: hoverBGColor 0.5s ease forwards;
+      }
+
+      /* Pied de page */
+      footer {
+        background-color: #333;
+        color: white;
+        text-align: center;
+        padding: 1rem;
+        font-size: 0.85rem;
+        margin-top: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Projet ToDo</h1>
+    </header>
+    <main>
+      <form>
+        <input
+          type="text"
+          name="task"
+          id="task"
+          placeholder="Ajouter une tâche"
+        />
+        <button type="submit">Ajouter</button>
+      </form>
+
+      <table id="taskTable">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Nom</th>
+            <th>Action</th>
+            <th>Supprimer</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </main>
+    <footer>
+      <p>&copy; 2024 Projet ToDo</p>
+    </footer>
+
+    <script>
+      const form = document.querySelector("form");
+      const task = document.querySelector("#task");
+      const taskTable = document.querySelector("#taskTable tbody");
+
+      function saveTasks() {
+        const tasks = [];
+        document.querySelectorAll("#taskTable tbody tr").forEach((row) => {
+          const status = row.querySelector("td:nth-child(1)").textContent;
+          const name = row.querySelector("td:nth-child(2)").textContent;
+          const done = row.classList.contains("done");
+          tasks.push({ status, name, done });
+        });
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+        console.log(tasks);
+      }
+
+      function loadTasks() {
+        const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        tasks.forEach((task) => {
+          addTaskToTable(task.name, task.status === "Fait");
+        });
+      }
+
+      function addTaskToTable(taskValue, isDone = false) {
+        const row = document.createElement("tr");
+        const statusCell = document.createElement("td");
+        const nameCell = document.createElement("td");
+        const actionCell = document.createElement("td");
+        const deleteCell = document.createElement("td");
+        const checkbox = document.createElement("input");
+        const deleteButton = document.createElement("button");
+
+        statusCell.textContent = isDone ? "Fait" : "À faire";
+        nameCell.textContent = taskValue;
+        checkbox.type = "checkbox";
+        checkbox.checked = isDone;
+        deleteButton.textContent = "Supprimer";
+
+        row.classList.add("task", isDone ? "done" : "todo");
+
+        checkbox.addEventListener("change", () => {
+          statusCell.textContent = checkbox.checked ? "Fait" : "À faire";
+          row.classList.toggle("done");
+
+          saveTasks();
+        });
+
+        deleteButton.addEventListener("click", () => {
+          row.remove();
+          saveTasks();
+        });
+
+        deleteCell.appendChild(deleteButton);
+        actionCell.appendChild(checkbox);
+        row.appendChild(statusCell);
+        row.appendChild(nameCell);
+        row.appendChild(actionCell);
+        row.appendChild(deleteCell);
+        taskTable.appendChild(row);
+      }
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const taskValue = task.value.trim();
+        if (taskValue) {
+          addTaskToTable(taskValue);
+          task.value = "";
+          saveTasks();
+
+          task.value = "";
+        }
+      });
+
+      loadTasks();
+    </script>
+  </body>
+</html>
